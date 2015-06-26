@@ -92,15 +92,19 @@ exports.convert = function (/* overloaded */) {
    var type = arguments[0],
        file = arguments[1],
        params = {}, output = '',
-       callback = false;
+       callback = false,
+       format = "";
 
    if (arguments.length === 3) {
       params = {},
       output = path.dirname(file) +'/'+ path.basename(
          file, path.extname(file)) +'.'+ type,
       callback = arguments[2];
-   }
-   else if (arguments.length > 3) {
+   }else if(arguments.length === 5){
+      format = arguments[2];
+      output = arguments[3];
+      callback = arguments[4];
+   }else if (arguments.length > 6) {
       var err = false;
 
       if (arguments[2] instanceof Object &&
@@ -117,7 +121,7 @@ exports.convert = function (/* overloaded */) {
          params = arguments[2];
          callback = arguments[3];
       }
-      else if (typeof arguments[2] === string &&
+      else if (typeof arguments[2] === 'string' &&
          arguments[3] instanceof Function) {
 
          output = arguments[2];
@@ -137,13 +141,12 @@ exports.convert = function (/* overloaded */) {
    switch(type) {
       case 'mp4':
          params = helpers.objectToArray(_({
-            '-i': file,
-            '-acodec': 'aac',
-            '-ab': '128k',
-            '-ar': '44100',
+            '-i': file,            
             '-vcodec': 'libx264',
-            '-vpre': ['slow','baseline'],
-            '-r': '25',
+            '-crf': '30',
+            '-threads': '0',
+            '-s': format,
+            '-acodec': 'copy',
             '-y': output
          }).extend(params));
       break;
@@ -199,6 +202,42 @@ exports.convert = function (/* overloaded */) {
    push({params: params, callback: callback});
 
 };
+
+/**
+ * Description:
+ *    Convert a multiples resolution
+ *    avoid code repetition.
+ *
+ * Parameters:
+ * input - path/to/the/inputFile.ext as a string.
+ * params - an object of ffmpeg options to be added to the predefined ones (optional).
+ * output - path/to/the/outputFile.ext as a string (optional).
+ * callback - function to call when ffmpeg is done, ex:
+ *    function (stderr, stdout, exitCode) { ... }
+ */
+
+
+exports.convertMP4 = function (json, callback) {
+   if(Object.keys(json).length < 3)
+      return callback('Falta Paramatros')
+   var params = {};
+       format = json.format;
+
+   params = helpers.objectToArray(_({
+         '-i': json.input,            
+         '-vcodec': 'libx264',
+         '-crf': json.quality || '30',
+         '-threads': json.threads || '0',
+         '-s': format,
+         '-acodec': 'copy',
+         '-y': json.output
+      }).extend(params));
+   
+   push({params: params, callback: callback});
+
+};
+
+
 
 /**
  * Description:
